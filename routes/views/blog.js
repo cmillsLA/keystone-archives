@@ -5,16 +5,19 @@ exports = module.exports = function(req, res) {
 	
 	var view = new keystone.View(req, res),
 		locals = res.locals;
-	
-	// Init locals
-	locals.section = 'blog';
-	locals.filters = {
-		category: req.params.category
-	};
-	locals.data = {
-		posts: [],
-		categories: []
-	};
+
+  // Init locals
+  locals.section = 'blog';
+  locals.filters = {
+    category: req.params.category,
+    year: req.params.year,
+    month: req.params.month
+  };
+  locals.data = {
+    posts: [],
+    categories: [],
+    archives: []
+  };
 	
 	// Load all categories
 	view.on('init', function(next) {
@@ -56,6 +59,35 @@ exports = module.exports = function(req, res) {
 		}
 		
 	});
+
+  // Load all archives in decscending order
+  view.on('init', function(next) {
+    keystone.list('PostArchive').model.find().sort({'date': -1}).exec(function(err, results) {
+
+      if (err || !results.length) {
+        return next(err);
+      }
+
+      var filteredResults = [];
+
+      // Remove duplicate archives
+      for(var i=0; i<results.length; i++) {
+        if(i === 0) {
+          filteredResults.push(results[i]);
+        } else {
+          var prevArchive = i - 1;
+          if(results[i].name != results[prevArchive].name) {
+            filteredResults.push(results[i]);
+          }
+        }
+      }
+
+      locals.data.archives = filteredResults;
+
+      next(err);
+
+    });
+  });
 	
 	// Load the posts
 	view.on('init', function(next) {
@@ -72,6 +104,14 @@ exports = module.exports = function(req, res) {
 		if (locals.data.category) {
 			q.where('categories').in([locals.data.category]);
 		}
+
+    if (locals.filters.year && locals.filters.month) {
+      var postMonth = locals.filters.month - 1;
+      var postYear = locals.filters.year;
+      var start = new Date(postYear, postMonth, 1, 0);
+      var end = new Date(postYear, postMonth + 1, 0, 23,59,59);
+      q.find({publishedDate: { $gte: start, $lt: end }});
+    }
 		
 		q.exec(function(err, results) {
 			locals.data.posts = results;

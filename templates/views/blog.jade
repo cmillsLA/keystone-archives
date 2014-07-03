@@ -73,3 +73,11 @@ block content
 					a(href='/blog', class=!data.category ? 'active' : false).list-group-item All Categories
 					each cat in data.categories
 						a(href='/blog/' + cat.key, class=data.category && data.category.id == cat.id ? 'active' : false).list-group-item= cat.name
+
+		if data.archives.length
+			.col-sm-4.col-md-3.navbar-right
+				.list-group-cat.list-group-archives
+					.list-group-item Archives
+					each archive in data.archives
+						a(href='/blog/archives/' + archive.date).list-group-item= archive.name
+
